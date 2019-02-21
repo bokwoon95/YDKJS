@@ -1,0 +1,19 @@
+CAR: Non-Empty_List - Returns Head of the Non-Empty_List
+
+CDR: Non-Empty_List - Returns Body of the Non-Empty_List (Which includes the parent parens)
+
+CONS: Sexp, List - Constructs a new_List with the Sexp as the new head of the original List
+
+COND: (Sexp1, Sexp2), ... - Goes down the line in order, if any of the Sexp1 evaluates to true return the corresponding Sexp2. Must always have a termination case ELSE.
+
+OR: Sexp1, Sexp2 - If Sexp1 evaluates to #F return Sexp2, else return Sexp1 (meaning Sexp1 is #T)
+
+AND: Sexp1, Sexp2 - If Sexp1 evaluates to #T return Sexp2, else return Sexp1 (meaning Sexp1 is #F)
+
+NULL?: List - Tests if the List is empty
+
+ATOM?: Sexp - Tests if Sexp is an Atom
+
+EQ?: Atom1, Atom2 - Tests if Atom1 == Atom2
+
+LAT?: List - Tests if every Sexp in the List is an Atom

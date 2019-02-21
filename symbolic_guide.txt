@@ -1,0 +1,359 @@
+Chapter 1 Advanced Topic
+• History of Lisp
+
+Chapter 2 Advanced Topic
+• Lisp can do unary arithmetic, which is basically base-1 arithmetic. In unary arithmetic, CDR is the same as SUB1, while CONS is the same as ADD1. NULL is a test for zero.
+• Dotted notation
+    Length of dotted lists exclude the element after the dot, i.e. (LENGTH '(A B C . D)) => 3
+• Circular lists
+
+Chapter 3 Advanced Topic
+• Functions with no arguments
+• The QUOTE special function
+• Internal Structure of Symbols
+Conceptually, a symbol is a block of five pointers.
+1. Name (of symbol)
+2. Value (of variable)
+3. Function (of symbol)
+4. ???
+5. ???
+Note that functions themselves are also comprised of symbols, so a user defined function symbol like AVERAGE points to an anonymous function object made of more symbols, some of which will point to the '+' & '/' symbols which in turn point to their corresponding compiled functions for 'add' and 'divide'.
+Symbols like 'T' & 'NIL' evaluate to themselves, meaning their value pointer points to their name pointer (which points to 'T' & 'NIL' respectively). This is useful so that EVAL will always evaluate 'T' & 'NIL' as themselves.
+A symbol also has separate pointers for both value and functions so they can reference either a value or a function depending on the current context.
+• LAMBDA notation
+• Scope of variables
+• Eval & Apply
+
+Chapter 4 Advanced Topic
+• Boolean Functions
+• Truth Tables
+• De Morgan's Theorem
+
+Chapter 5 Advanced Topic
+• Symbols & Value cells
+• Distringuishing between local & global variables
+• Binding, Scoping & Assignment
+
+Chapter 6 Advanced Topic
+• Trees
+- SUBST & SUBLIS
+• Efficiency of list operations
+- depends on how many cons cells are created. Too many cons cell creations lead to more frequent Garbage Collection, which slows operations down.
+• Shared structure
+- Lists that are manually typed out will never share the same structure: the READ operation will always create new CONS cells. However you can force two lists to share the same structure by manually pointing their references to a shared list. SETF points a symbol's reference arrow to some value, we can use this to point to existing lists (using their symbol names) to cause them to share structures. However it is not mentioned whether this implies changing one symbol's value will therefore cause the other to change as well (the implication seems to say yes but my testing says no)
+• Equality of objects
+All symbols in Lisp are unique. In the list '(TIME AFTER TIME), the first and the third cons cells are pointing to the same 'TIME' symbol's address, because there cannot be multiple 'TIME' objects - all 'TIME' symbols are one and the same. However lists are NOT unique, so two identical lists don't point to the same list object's address. However the EQUAL comparator doesn't compare addresses, it compares every item in the list (recursively). Hence two identical lists will be considered the same by EQUAL. But the EQ comparator is different - it only looks at the address. So two identically constructed lists will be considered different by EQ as they do not have the same address.
+EQ - Compares addresses. Checks if two objects are literally the same, not whether they have the same value. Avoid EQ as its answer for comparing two same integers,floats & quoted symbols depends varies between Lisp implementations.
+EQL - Safer way to check addresses than EQ. If two integers, floats or quoted symbols are the same, EQL always returns true.
+EQUAL - Doesn't check addresses, instead recursively compares every item in a sexp.
+EQUALP - Same as EQUAL, but case insensitive.
+= - The only way to check value equality of two different number types e.g. 3 & 3.0
+• Keyword arguments
+Functions may sometimes take extra, optional keyword arguments. For example, the REMOVE function accepts a :COUNT <number> argument that removes the first <number> amount of items from the list. It also accepts a :FROM-END argument that starts removing from the end of the list instead of the beginning.
+REMOVE internally uses the EQL comparator, so will not remove lists as it sees them as not equal. You can provide REMOVE with a :TEST #`EQUAL keyword to make REMOVE use EQUAL instead of EQL, hence allowing it to remove lists
+Other functions that accept a :TEST argument include all list functions with an equality test (eg MEMBER), UNION, INTERSECTION, SET-DIFFERENCE, ASSOC, RASSOC & SUBST
+Keywords are always preceded by a :colon and they evaluate to themselves, so there is no need for keywords to be quoted. You can test whether a symbol is a keyword with the KEYWORDP predicate.
+
+Chapter 7 Advanced Topic
+• Operating on multiple lists
+- Applicative operator functions that act on one list item at a time like MAPCAR & EVERY are able to act on multiple lists at once. When that happens, they will act on every n-th item in each list in tandem. Hence you must ensure that the function you pass in accepts the same number of arguments as the number of lists you passed in (if you pass in 3 lists, make sure the function is able to accept 3 arguments).
+e.g. (MAPCAR #'+ '(1 2 3 4) '(5 6 7 8)) will map '+' to 1 & 5, 2 & 6, 3 & 7, 4 & 8. Kind of line python's zip() really.
+• The 'function' special function
+Just as 'X is shorthand for (quote X), #'X is short for (function X).
+This layer of indirection is needed to delay EVAL from evaluating the function when you pass it in as an argument, the same reason why you use (QUOTE APPLE) so that EVAL strips the QUOTE away and returns the APPLE without chasing the value of what APPLE means. The difference is while QUOTE returns its unevaluated argument, FUNCTION returns the _functional version_ of its unevaluated argument. If the argument is a symbol, it returns the contents of the symbol's function cell (often a compiled code object). If the argument is a lambda expression, it returns a lexical closure (huh?). Whether a compiled code object or lexical closure, the object returned by FUNCTION is always the the function itself.
+• Keyword arguments to applicative operators
+Some applicative operators like FIND-IF, REMOVE-IF, REMOVE-IF-NOT or REDUCE accept keyword arguments. Examples -- :FROM-END, :COUNT
+• Writing an applicative operator
+Using FUNCALL, you can write your own applicative operator. By sharp-quoting a function, you turn the function into data which you can then pass into your custom applicative operator function. Your custom applicative operator can then FUNCALL that function object on the arguments provided in. Example:
+(defun my-applicative-operator (fn list)
+  (funcall fn
+           '(life liberty & the pursuit of happiness)))
+Notice that whatever function is passed in, it gets applied to the list '(life, liberty & the pursuit of happiness). Using the same strategy you can write your own MAPCAR, FIND-IF, REMOVE applicative operators.
+• Functions that write functions
+Bascially functions can return other functions, and you can use that result as a function since it is a function (Duh).
+
+Chapter 8 Advanced Topic
+Nothing To Learn from Here Really. Thanks Little Schemer!
+
+Chapter 9 Advanced Topic
+• Parameters to format directives
+You can specify the additional perimeters for some format directives. For example in C you can specify %2f to specify a float to be displayed to two decimal places, while %f will just display the entire float's precision. In Lisp you can use ~10S to specify the width of the symbol.
+• Additional format directives
+~D for decimals
+~F for floats
+• Lisp 1.5 output primitives
+Outdated, FORMAT does everything you need
+• Handling END-OF-FILE
+When you call READ past the end of file, READ returns an end-of-file error and you end up in the debugger. To avoid this, you can pass two additional arguments to READ: NIL & a value. NIL is so that READ will not generate an error, and the value that you pass in will be returned instead once READ goes past the EOF. Then to know whether you have reached EOF all you have to do is compare the result of READ to the value of the EOF you passed in.
+But beware: there is a possibility that the file might contain the exact same string as the value you passed in. You can come up with some fantastically complicated value to avoid possible conflicts, but those statistically do not guarantee that a conflict wouldn't happen. Here's a mathematically sound way: pass in some value, but instead of checking the value you check the value's /address/ instead using EQ: that way you can guarantee that the EOF value that READ just returned is indeed the EOF value that you passed in to READ! Here's a sample code from the book:
+(defun read-my-file
+    (with-open-file (stream "~/Documents/somefile.txt")
+                    (let ((contents (read-all-objects stream
+                                                      (list 'EOF))))
+                                        ;(list 'EOF) generates a new cons cell which is passed into the read-all-objects function
+                      (format t "~&Read ~S objects from the file."
+                              (length contents)
+                              contents))))
+(defun read-all-objects (stream eof-indicator)
+  (let ((result (read stream nil eof-indicator)))
+    (if (eq result eof-indicator)
+        nil
+      (cons result (read-all-objects stream)))))
+• Hybrid notation vs Dot notation
+(A)               | (A . NIL)
+(A . B)           | (A . B)
+(A B)             | (A . (B . NIL))
+(A B . C)         | (A . (B . C))
+(A B C . D)       | (A . (B . (C . D)))
+((A) B C . D)     | ((A . NIL) . (B . (C . D)))
+
+Chapter 10 Advanced Topic
+=========================
+• Destructive list actions
+NCONC is the destructive version of APPEND. Instead of copying and returns a new cons object, it alters the existing list structure.
+NSUBST is the destructive version of SUBST.
+NREVERSE <-> REVERSE
+NUNION <-> UNION
+NINTERSECTION <-> INTERSECTION
+NSET-DIFFERENCE <-> SET-DIFFERENCE
+• How destructive operations are useful
+If you want to make a small change without creating an expensive duplicate of the existing structure
+If you want your effects to be ripple out globally (best to avoid writing functions that depend on global effects rippling in to begin with)
+• SETQ and SET
+Both are considered archaic. Use setf everywhere instead.
+
+Everything in Lisp is made up of cons cells. A cons cell contains two slots -- the CAR and the CDR. The CAR points to a symbol which then points to some value/function, while the CDR points to the next cons cell in the list. The last item of a list has its CDR pointing to NIL (synonymous with an empty list), so lists are NIL terminated.
+
+How I think it is: When you create (apple banana cherry), it is made of four cons cells. The first three cons cells point to the apple, banana and cherry symbols respectively. The last cons cell points to NIL. However calling 'apple' by itself is not a cons cell: it is the symbol 'apple'. Only lists are made of cons cells, symbols are not cons cells, and each cons cell points to a symbol. The cons cell does not CONTAIN the symbol. With a list like '(apple banana cherry), 'cherry' doesn't point to NIL -- the cons cell whose CAR points to the 'cherry' symbol, has its CDR pointing to the cons cell whose CAR points to the symbol 'NIL'.
+
+[CAR|CDR] --> [CAR|CDR] --> [CAR|CDR] ---> [CAR|CDR]
+  |            |              |              |
+  V            V              V              V
+APPLE        BANANA         CHERRY         NIL
+name:apple   name:banana    name:cherry    name:NIL
+value:apple  value:banana   value:cherry   value:NIL
+function:    function:      function:      function:
+
+What are macros vs higher order functions vs normal functions?
+
+Some clues:
+
+    "macros can take in any number of arguments"
+
+    "setf does not evaluate its argument. It can do this because it's a macro function. The value returned is the value assigned to the variable/symbol"
+
+(LET ((x 3) (y 4) (z 5)) body)
+
+In lisp, symbols have separate spaces for function and values! So while car is used as the CAR function, you can also assign car a value (e.g. ROLLS ROYCE) and this will not conflict with the CAR function. Depending on the context it was invoked in, car will either point to a function or value. This is because all symbols have two separate slots for functions and values.
+
+Symbols vs Variables
+Symbols serve as names for variables AND functions (see the above).
+
+Pg 157, Section 5.10: Binding, Scoping & Assignment
+Some cheem explanation of what exactly 'binding' means in Common Lisp vs old dialects of Lisp. Don't really feel like understanding it but I'll come back to if I ever need it in the future.
+
+"Lists are one way chains of pointers. It is easy to add an element to the front of a list because what we're really doing is creating a new cons cell whose cdr points to the existing list. There is no direct way to add an element to the end of a list because the end of the original list already points to NIL"
+
+CONS       | first item                -> points to ->  second item | no NIL added at the end   | only 2 items
+LIST       | first & subsequent items  -> points to ->  last item   | with NIL added at the end | can take any number of items
+APPEND     | first & subsequent items  -> points to ->  last item   | no NIL added at the end   | can take any number of items
+           | (discards their parentheses)
+
+CONS pushes the first item as the new head of the second list. If the second item is not list, you get dot notation (A . B).
+    -> Internally, the first item points to the second item, without a new NIL added.
+LIST adds all its items into a new list.
+    -> Internally, the first item points to the second which points to the third... and a new NIL is added at the end.
+APPEND discards the parentheses of the first item and adds them to the second item.
+    -> Internally, the end of the first item is directed away from NIL and now points to the second item.
+    -> This is the only function with a type restriction as the first item HAS to be a list. CONS and LIST both accept either lists or symbols as the arguments.
+        -> If the first item isn't a list, use CONS. The whole point of APPEND is to remove the parent parentheses from the first item and CONS them onto the second list/symbol
+
+(NTHCDR number list) executes cdr on the list <number> amount of times. Bit like CDDR or CDDDR, except it's more flexible as it takes in a number.
+(NTH number list) returns the car of (NTHCDR number list). If you want the 5th element, you have to subtract 1 from your argument e.g. (NTH 4 '(a b c d e f)) => e
+(REVERSE list) returns a reversed list
+(LAST list) returns the last item in the list
+(REMOVE symbol list) returns a list with all the symbols matching <symbol> removed. Doesn't seem to remove lists, only symbols.
+
+Function         | Copies its input?
+------------------------------------
+(APPEND <lists>) | yes (except for last list)
+(REVERSE list)   | yes
+(NTHCDR n list)  | no
+(NTH n list)     | no
+(LAST list)      | no
+(REMOVE n list)  | yes (only for the list input)
+
+Anytime the a function needs to return a cons cell chain (basically a list) that isn't contained in its inputs, it needs to copy the inputs. This is because data structures are IMMUTABLE in Lisp. If you want to destructively alter a data structure, you must do it on a copy of the data structure, not the original.
+
+BREAKING NEWS: Due to the truthy nature of Lisp, non T/NIL functions can also be used as predicates. As long as something not NIL is returned (could be a list, symbol or T), it is considered 'True'.
+
+(MEMBER symbol list) returns a sublist where the car is the first instance of <symbol>.
+
+In the book          : (INTERSECTION set1 set2) returns a set of items appearing in both sets. The exact order of items is undefined, but order isn't important in sets anyway. If a set is not provided, it is not said whether an error will be thrown.
+In my version of Lisp: (INTERSECTION list1 list2) returns a list of items appearing in both lists. The exact order of items is random. Repeated items will appear the same number of times as it does in the list with the lesser amount of repeats.
+example 1: an item appears 5 times in list1, 7 times in list2. Hence, it appears 5 times in the result.
+
+In the book          : (UNION set1 set2) returns a set of items appearing in either set. The exact order of items is undefined, but order isn't important in sets anyway. If a set is not provided, it is not said whether an error will be thrown. Even if an item appears in both sets, it will still only appear once in the result.
+In my version of Lisp: (UNION list1 list2) returns a list of items appearing in both lists. The exact order of items is random. Repeated items will appear the same number of times as it does in the list with the lesser amount of repeats. Unless an item doesn't appear in one of the lists at all, to which the number of repeats in the result will follow the number of repeats in the other list. Ergo as long as an item appears in one of the sets, it must appear in the result.
+example 1: an item appears 5 times in list1, 7 times in list2. Hence, it appears 5 times in the result.
+example 1: an item appears 0 times in list1, 7 times in list2. Hence, it appears 7 times in the result.
+
+(SUBSETP list1 list2) checks whether list1 is a subset of list2. The book says it must be a set, but it still works for lists. Details about repeated values have not been tested.
+
+My answer to pg178's exercise
+-----------------------------
+(defun compare (l)
+  (let* ((l1 (extract-first-half l))
+         (l2 (extract-second-half l))
+         (num-of-common (length (intersection l1 l2))))
+    (cons num-of-common '(COMMON FEATURES))))
+(defun extract-second-half (l)
+  (cdr (member '-vs- l)))
+(defun extract-first-half (l)
+  (cdr (member '-vs- (reverse l))))
+
+The term 'entry' is defined differently in this book and 'the little schemer' as follows:
+TLS: An entry is a list pair of two lists (a set and a list), both equal in length. A table is a list of entries.
+'((key1 key2 key3 key4 key5)
+  (val1 val2 val3 val4 val5))
+GITSC: An entry is a list, where the car is the key and the cdr the value. A table is a list of entries.
+'((key1 val1)
+  (key2 val2)
+  (key3 val3)
+  (key4 val4)
+  (key5 val5))
+note to self: the internal lists don't have to be quoted because the eval is stopped by the quotes on the outer list.
+
+(ASSOC key table) returns the corresponding (key value) list from the table when given a key.
+(RASSOC value table) returns the corresponding (key value) list from the table when given a value.
+Both ASSOC and RASSOC return the first (key value) list that matches.
+
+(SET-EXCLUSIVE-OR list1 list2) returns the XOR items from both lists (that is, appears only in either one of the lists but not both)
+(SUBLIS table list). The table must be a list of dotted pairs. Everytime it encounters a symbol in the list that matches a key, it substitutes that key with its corresponding value in the table.
+(REMOVE-DUPLICATES list) removes duplicate expressions from a list.
+
+Circular lists are great! Simply rewrite your list from '(val1 val2 val3) into '#1=(val1 val2 val3 . #1#)
+You can also create a circular list with the 'circular' function:
+(defun circular (items)
+  (setf (cdr (last items)) items))
+What it does is it returns a list where the you forcibly point the cdr of the last item (normally pointed at NIL) back at the start of the list itself. Hence, a circular list.
+Hey, I didn't know you could point the last item away from NIL like that. So it seems like internally, the CDR of a list is really the address of where the first cons cell points to. While the CAR of a list is the address of the first cons cell.
+Does the name of the list also point to the first cons cell? If you draw out the diagram it seems like it does, but that means you can substitute 'items' with 'car items' since they both point to the same address. But somehow this doesn't seem to work.
+
+(FUNCALL #'cons 'a 'b) => (a . b)
+FUNCALL calls a functions on the given inputs. Why not just call the function directly?
+note: the #' sharp-quote notation is the correct way to quote functions, when you want to pass a function as an argument without evaluating it as a function. Sometimes calling 'cons also works, but #'cons is more explicit as sometimes 'cons might get evaluated as the symbol "cons" instead.
+Note that the #' sharp-quote notation only works on ordinary functions, not macro functions or special functions. You will learn more about macro/special functions later.
+also note: you can directly pass in lambda functions, but they too have to be sharp-quoted e.g. #'(lambda (n) (* n n))
+
+(MAPCAR #'func list) is the most commonly used applicative operator. It applies a function to each element in the list. Does this also mean that MAPCAR has access to the top-level items, but not items in nested items? Well, you can access nested items by including another MAPCAR within the function that you pass to MAPCAR.
+
+LAMBDA is not a macro or special function, rather it is a marker that says 'this list is a function'.
+    My interpreter begs to differ. When I type (macro-function 'lambda), it returns #<FUNCTION (MACRO-FUNCTION LAMBDA) {223EE07B}>
+REMOVE-IF / REMOVE-IF-NOT
+REDUCE
+EVERY
+
+===================
+Recursive Templates
+===================
+
+Double-test Tail recursion
+--------------------------
+(defun func (X)
+  (cond
+   ((end-test-1) (end-value-1)
+    (end-test-2) (end-value-2)
+    (T (func reduced-X)))))
+
+Single-test Tail recursion
+--------------------------
+(defun func (X)
+  (cond
+   ((end-test) (end-value)
+    (T (func reduced-X)))))
+
+Single-test Augmenting Recursion
+--------------------------------
+(defun func (X)
+  (cond
+   ((end-test) (end-value)
+    (T (some-action (func reduced-X))))))
+
+...And a few more templates that really don't seem helpful to take note of.
+
+Tail recursion seems to refer to recursive functions that recurse on the very last line. Some languages will optimise tail recursive calls to use only one stack space, making them identical to loop contstructs. Other languages (like C?) will always dedicate one stack space for a recursive call, leading to multiple stack spaces used for a simple tail recursive function. Hence the argument that you should always use loop constructs instead of tail recursion, given that they're basically identical but recursive calls eat up stack space. BUT the caveat is that if you're using a language optimised for tail recursion (like Lisp), it matters not whether you use a loop or tail recursion.
+
+Ch9: Input/Output
+Strings evaluate to themselves, as numbers do. Strings in Lisp are enclosed by double quotes, not the single quotes that we use to quote symbols and lists.
+
+Ch10: Assignment
+Warning: destructive functions lie here! Unpure functions that are influenced by external variables, hence does not guarantee the same answer when given the same arguments!
+(INCF num count:optional) updates num by increasing num by count, count defaults to 1 if the user does not provide it as a parameter
+(DECF num count:optional) updates num by decreasing num by count, count defaults to 1 if the user does not provide it as a parameter
+(PUSH item list) updates list by pushing item into list
+(POP list) updates list by removing the topmost item
+
+Assignment should be used only when absolutely necessary. For example, it is considered inelegant to change the value of a local variable; one should bind a new local variable with LET instead. It is even more frowned upon to modify an parameter passed in as an argument to a function. Consider a function that subtracts 1 from a number twice, and prints out the result each time:
+
+(defun bad-style (n)
+  (format t "~&N is ~S." n)
+  (decf n)
+  (format t "~&Now N is ~S." n)
+  (decf n)
+  (format t "~&Now N is ~S." n)
+  (list 'result 'is (* n (- n 1))))
+
+> (bad-style 9)
+N is 9.
+Now N is 8.
+Now N is 7.
+(RESULT IS 20)
+
+(defun good-style (n)
+  (let* ((p (- n 2))
+         (q (- p 2)))
+    (format t "~&N is ~S." n)
+    (format t "~&P is ~S." p)
+    (format t "~&Q is ~S." q)
+    (list 'result 'is (* q (- q 1)))))
+
+> (good-style 9)
+N is 9.
+P is 8.
+Q is 7.
+(RESULT IS 20)
+
+You don't necessarily have to do all your calculations within the LET assignment, the idea is to just create enough local variables to track each stage of your data mutation such that every variable is set only once -- no variable is reused/overwritten. Hence you can initially let all the local variables to be NIL, then assign them one by one accordingly in the body.
+
+(defun also-good-style (n)
+  (let ((p nil)
+        (q nil))
+    (format t "~&N is ~S." n)
+    (setf p (- n 1))
+    (format t "~&P is ~S." p)
+    (setf q (- p 1))
+    (format t "~&Q is ~S." q)
+    (list 'result 'is (* q (- q 1)))))
+
+(When <predicate> <expression>)
+(Unless <predicate> <expression>)
+These are entirely replaceable by a COND construct, but they are a lot more specific in their purpose than COND: This makes them easier to read. WHEN will only return <expression> when the <predicate> is true, otherwise it will evaluate to NIL. UNLESS will return <expression>, unless the <predicate> is true then it will return NIL.
+
+Generalized variables (Is this what they call virtual pointer manipulation in C++?)
+A generalized variable is any place you can store a pointer. When you (setf N 3), you are filling the value field of the N symbol with an address to the the integer 3. Sounds weird but it's true, out there in Lisp there is some address purely for the value 3, even though the value field of the symbol N is more than capable of storing the integer 3 directly. When you (INCF N), you are simply replacing the address with a another address containing the number 4.
+The assignment macros SETF, INCF, DECF, PUSH & POP all act on addresses, not values -- it's how they achieve their effects globally. When you (DECF N) you're not really decreasing the value that N points to, you're reaching into N and pointing its value to another number that is one less than the current one.
+What is more interesting is that you get something kind of resembling pointer 'arithmetic' (or is it linked-list arithmetic?). In particular, the address of a list is the same as the address of the first element (but you already knew that). So when you (SETF x '(jack benny was 39 for many years)), X doesn't just point to the list, it points to the address of the first element. But when you evaluate (sixth x) what do you get? You get an address to the sixth element in the list! Remember, knowing a variable's address gives you power over that variable. You can now setf (sixth x) to whatever value you want, and the next time you evaluate x again you will see that the sixth element in the x would have been changed globally. So by simply knowing the address of the first element you can extrapolate the addresses for every element in the list (until you hit NIL).
+When you setf some cons cell's address, you're fucking with the CAR half of the cons cell, which is value that the cons cell the points to. When you setf the CDR of some cons cell's address, you're fucking with the CDR half of the cons cell, which is pointing to the next element in the list. When you fuck with the CAR, you fuck with the value of the current element by pointing the the "value pointer" away at some other value. When you fuck with the CDR, you fuck with the rest of the list by pointing the current element's "next element pointer" away at somewhere else.
+
+Ch11: Iteration and Block Structure
+DOTIMES
+DOLIST
+For searching a flat list, iteration is better than recursion.
+
+Building up results
+In recursion, results are built up via recursive calls with something like CONS or ADD1. For iterations, use LET to set the initial value and and use SETF to repeatedly alter that value.
+Comparing DOLIST with MAPCAR with recursion
+If you wish to apply a function onto a list, MAPCAR is tailored for that. You can use DOLIST or recursion to achieve the same thing, but you'll have to handle building up the list yourself. Also note that iterative solutions with DOLIST will typically have reversed answers, because they process data from left to right but build up answers from right to left by adding to the head of the list. Of course, you can use something like APPEND or NCONC to add to the end of the list.
+
+DO has several advantages over DOTIMES or DOLIST. It can step though the index variables in any way you like, so you can count from 9 to 0 instead of the 0 to 9 that DOTIMES forces on you. It can also bind multiple variables, so you can use that to build up results. To elaborate on that, imagine calculating the factorial of 5 with DOTIMES. You have an index variable that you step through 5 times. But then you also need to multiply the current index variable with the result so far. You need an extra variable to store the result so far! That means a surround LET block that creates the variable 'result', so you can use SETF within the LET block like so (setf result (* index result)). If you instead use DO, you can track both the index variable and the result variable simultaneously.

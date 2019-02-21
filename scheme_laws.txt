@@ -1,0 +1,80 @@
+1st Commandment (final)
+------------------------
+When recurring on a List of Atoms, Lat, ask two questions about it: (NULL? Lat) & Else
+When recurring on a number, n, ask two questions about it: (ZERO? n) & Else
+When recurring on a List of Sexps, l, ask three questions about it: (NULL? l), (ATOM? (CAR l)) & Else
+
+2nd Commandment
+---------------
+Use CONS to build lists
+
+3rd Commandment
+---------------
+When building a list, describe the first typical element, & then CONS it onto the natural recursion
+
+4th Commandment (final)
+------------------------
+Always change at least one argument while recurring.
+When recurring on a lat, use (cdr lat).
+When recurring on a number, use (sub1 n).
+When recurring on a list of sexps, use (car list) & (cdr list) if neither (null? list) nor (atom? (car list)) is true.
+
+It must be changed closer to be closer to the terminating condition. The changing argument must be tested in the terminating condition like so:
+"When using CDR, test termination with NULL?"
+"When using Sub1, test termination with ZERO?"
+
+5th Commandment
+---------------
+When building with ADD, always use 0 for the value of the terminating line as 0 does not change the value of an addition
+
+When building with MULT, always use 1 for the value of the terminating line as 1 does not change the value of a multiplication
+
+When building with CONS, always use () for the value of the terminating line as () does not change the value of a List
+
+6th Commandment
+---------------
+Simplify only after the function is correct
+
+7th Commandment
+---------------
+Recur on the subparts that are of the same nature:
+- on the sublists of a list
+- on the subexpressions of an arithmetic expression
+
+8th Commandment
+---------------
+Use help functions to abstract from representation
+
+9th Commandment
+---------------
+Abstract common patterns with a new function (this one is common sense really)
+
+10th Commandment
+----------------
+Build functions to collect more than one value at a time
+
+My addenum: We could remember state for single items by queueing up actions through the unwinding of recursion. What a collector function does similarly is to queue up multiple actions on each of its arguments during the unwinding process. The important thing to keep in mind is that the recursion builds up the winding while the collector function only kicks in at the end of the unwinding.
+
+My addenum2: Using the fact that the collector kicks in only after the recursion has finished queueing up the necessary items, you can reason clearly on how to recurse on nested lists using a collector.
+
+finish recurring on car
+ -> car collector kicks in
+car collector has to invoke the another instance of the main (recursive) function on the cdr
+
+finish recurring on cdr
+ -> cdr collector kicks in
+cdr collector has to combine the results from the car collector with the cdr collector
+
+The mindbending conclusion is that the collector for car contains the main recursive function itself but for cdr, as well as cdr's own collector function. Very heavy responsibility for a collector function indeed.
+
+===========
+My Insights
+===========
+
+They advocate a quite methodical approach to recursion; you can break it down to what questions you need to ask at any one time, and the kind of questions you need to ask are quite structured across the different types of datastructures you need to work on
+
+A lot of their solutions rely on chaining/queueing up a certain action (like add1) while reducing some value til 0 (the natural recursion with a reduced value closer to the termination condition), then executing all the chained actions to get the answer.
+It's kind of like the number of queued function calls acts as an internal counter to the number of times you have to do this action to get the answer.
+
+"Beware of shadows" End of Chapter 5. The shadows are the low level details that you abstract away, that don't fit in with your higher level logic. For example (1 2 3 4) is a representation of ((()) (()()) (()()())), so (1 2 3 4) is an abstraction. Yet LAT? is true for only for the abstraction (1 2 3 4) but not the low level ((()) (()()) (()()())) that the abstraction represents, hence you need to always keep in mind that things may be true for the abstraction and not the low level implementation. (My take on it).
+

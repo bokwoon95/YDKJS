@@ -1,0 +1,138 @@
+Arithmetic functions:
+=====================
++ - * / ABS SQRT
+FIRST/CAR
+REST/CDR
+
+Predicates:
+===========
+(LISTP e) checks if e is a list, including NIL (NIL is a list)
+(CONSP e) checks if e is a list, excluding NIL (NIL is not a cons cell)
+(ATOM e) checks if e is an atom. Polar opposite of CONSP (NIL is an atom)
+(NULL e) checks if e is NIL
+(PLUSP n) checks if n is greater than zero. Type error if not a number.
+(STRINGP e) checks if e is a string
+
+List Functions:
+===============
+CONS
+LIST
+APPEND
+LENGTH
+
+Tree Functions:
+===============
+(SUBST a1 a2 list) substitutes every occurence of a2 with a1 in list
+(SUBLIS dotted-pair-list list) substitutes every occurence of any key with the corresponding value from the dotted-pair-list, in list
+
+Conditionals: (macros)
+=============
+IF
+COND
+AND
+OR
+
+Variable assignment function: (macros)
+=============================
+SETF
+INCF
+DECF
+PUSH
+POP
+
+Local variable assignment function: (macro?)
+===================================
+LET
+LET*
+LABELS does exactly what LET does, except it declares local functions rather than local variables. Question: will a local function declared inside a parent function be redeclared everytime a new recursive call to the parent function is invoked? I think so man.
+
+List Functions:
+===============
+REVERSE
+NTHCDR
+NTH
+LAST
+REMOVE
+
+Set Functions:
+==============
+UNION
+INTERSECTION
+SET-DIFFERENCE
+SET-EXCLUSIVE-OR
+MEMBER
+SUBSETP
+REMOVE-DUPLICATES
+
+Table Functions:
+================
+ASSOC
+RASSOC
+
+Applicative Operators:
+======================
+(MAPCAR <function>  list) applies <function> to every top-level item in the list
+(FIND-IF <predicate> list) checks every item in the list with the predicate and returns the first item that matches
+(REMOVE-IF <predicate> list) removes items that match the predicate
+(REMOVE-IF-NOT <predicate> list) removes items that do not match the predicate
+(REDUCE <function> list) reduces a list into one output. The function provided must accept two (what about more?) inputs and return one output. REDUCE will then use this function to reduce the list one by one until only own result is left.
+(EVERY <predicate> list) returns true if every item in the list matches the predicate. Note that passing a NIL predicate means that item is vacuously true.
+
+I/O Functions:
+==============
+(FORMAT t "string") prints "Hi" without the double quotes and returns NIL. Used for its side effect, essentially
+    formatting directives(placeholders) start with ~, same way C style strings use \
+    ~% == \n
+    ~& make a new line, unless already on a new line
+    ~S replaced with corresponding S-expression. String double quotes are included.
+        (format t "~S of all trades, ~S of none" 'Jack 'Master)
+        => JACK of all Trades, MASTER of none
+        (format t "~S of all trades, ~S of none" "Jack" "Master")
+        => "Jack" of all trades, "Master" of none
+        (format t "~S of all trades, ~S of none" '(Jack Black) '(Master Oogway))
+        => (JACK BLACK) of all trades, (MASTER OOGWAY) of none
+    ~A replaced with corresponding S-expression. String double quotes are excluded.
+        (format t "~A of all trades, ~A of none" 'Jack 'Master)
+        => JACK of all Trades, MASTER of none
+        (format t "~A of all trades, ~A of none" "Jack" "Master")
+        => Jack of all trades, Master of none
+        (format t "~A of all trades, ~A of none" '(Jack Black) '(Master Oogway))
+        => (JACK BLACK) of all trades, (MASTER OOGWAY) of none
+(READ) is a function that reads one Lisp object (a number, symbol, list, whatever (??)) from the keyboard and returns that object as its value. Use READ where you want a user to enter data, the same you you would use scanf [citation needed].
+    this
+    => THIS
+    this is a string
+    => THIS
+    "this is a string
+    => "this is a string"
+(YES-OR-NO-P string) will display a string along with a yes or no prompt. Use it as you would a predicate. It strictly accepts only case-insensitive "yes" or "no"s, "Y" & "N" are not allowed.
+(WITH-OPEN-FILE (<varname> <filepath>) <body>) Creates a local variable (similar to LET) and sets it to the stream object that is a representation of the file.
+    Calling (READ <varname>) is equivalent to someone typing out the contents of the file into the REPL. Hence once READ sees a newline (equivalent to pressing Enter) it will stop reading and return just like how it behaves in the REPL.
+    On leaving the WITH-OPEN-FILE form, the connection to the file is closed automatically.
+    You can write to a file instead with the :DIRECTION :OUTPUT keyword arguments. Then just use (format stream <string> <args>) to write as though you are using FORMAT in the REPL
+
+Misc Functions:
+===============
+(TYPE-OF exp) returns the type of the EXP passed in
+(MACRO-FUNCTION 'function) returns NIL if the quoted symbol is a macro function, else returns the macro function's name & ID
+(FUNCALL #'function <args>) seemingly equivalent to calling <function> with <args>. Why is FUNCALL used then?
+    funcall differs from apply like so:
+    (funcall func a b c d)
+    (apply func (a b c d))
+
+Iteration Functions: (macros)
+====================
+(DOTIMES (index-variable n [result-form])
+  body)
+  DOTIMES evaluates the forms in its body n times, while stepping the index-variable from 0 to n-1. It then returns result-form, which defaults to NIL if result-form is ommitted.
+(DOLIST (index-variable list [result-form])
+  body)
+  DOLIST is like DOTIMES except it steps index-variable through every element of the list. It also returns result-form which defaults to NIL if ommitted.
+(RETURN expr) RETURN is used to break out of loops. It takes in one argument: the expression to return as the result of the iteration. Note that when return is used, it will override [result-form] provided to DOTIMES/DOLIST
+(DO ((var1 initialvar1 [expr-to-increment-var1])
+     (var2 initialvar2 [expr-to-increment-var2]))
+    (<test> expression1 expression2 expression3)
+    body)
+    Tracks multiple variables (e.g. var1, var2). During each iteration, check <test>.
+    If true, evaluate expression1, expression2, expression3 one by one and finally return the last expression (thus breaking the loop).
+    Else if <test> is not true, evaluate the body before invoking the next loop iteration.

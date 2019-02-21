@@ -1,0 +1,1045 @@
+Atoms, Lists, & Sexps
+=====================
+
+An Atom is any string of characters or digits
+
+A List is zero or more Atoms enclosed by parenthesis. Note that as long as there are parentheses it is a List, and it cannot be an Atom. Atoms and Lists are mutually exclusive. An empty List is still a List, so it is not an Atom.
+
+However both Atoms and Lists are called Symbolic Expressions (or S-Expressions). An S-Expression can therefore contain other S-Expressions (which are either Atoms or Lists).
+
+CAR & CDR
+=========
+The CAR of a List returns the first item of the List (known as the head). The CDR of a List returns everything else that is not in the head, meaning it INCLUDES THE PARENT PARENTHESES. Put together, the CAR & CDR -must- return the original List.
+    Note that both CAR & CDR are only defined for non-empty Lists. Atoms are just Atoms and have no head or body. The empty List '()' is just a List (that is empty) and also has no head or body.
+
+    CDR ALWAYS returns a List. If you take the CDR of a List repeatedly, eventually it will return an empty List (which were the parent parentheses of the orginal List).
+        To which you cannot take the CDR of anymore, because if you remember CDR is only defined for non-empty Lists. Taking the CDR of () returns 'no answer'.
+
+    CAR ALWAYS returns a Sexp (which can be either Atoms or Lists). If you take the CAR of a List repeatedly, eventually it will return an Atom -OR- an empty List.
+        To which you cannot take the CAR of anymore, because if you remember CAR is only defined for non-empty Lists. Taking the CAR of an Atom or empty List returns 'no answer'.
+
+CONS
+====
+CONS takes 2 arguments, a Sexp & a List. It constructs a new List by pushing the Sexp as the first item (the head) original List. It therefore always returns a List.
+    Using anything other than a List as the 2nd argument will return 'no answer'
+
+NULL?
+=====
+NULL? takes in 1 argument, a List. It tests if that List is an empty List. Anything other than an empty List will return FALSE. It returns TRUE only if the List is an empty List.
+    Using anything other than a List will return 'no answer'
+
+ATOM?
+=====
+ATOM? takes in 1 argument, an S-Expression. It tests if that S-Expression is an Atom. Anything other than an Atom returns FALSE. It returns TRUE only if the S-Expression is an Atom.
+    Since it accepts a Sexp and Sexps covers everything that exists in the Scheme language, ATOM? can never return 'no answer'.
+
+EQ?
+===
+EQ? takes in two arguments, both non-numeric Atoms (why non-numeric?). It tests if both atoms are the same atom.
+
+
+================================================================================
+End of Chapter 1
+
+Fact Check: Since functions like CAR, CDR, CONS, NULL? & EQ? have certain argument requirements that include/exclude Atoms, you must always use the ATOM? check to ensure all the arguments are what they should be before proceeding with the procedure.
+    Is this False? The functions below assume tha they have been fed with the correct data types.
+
+Fact Check: Every List that you wish to be treated at face value as a List should be prepended by a 'quote sign. Otherwise, the interpreter will default to trying to execute the first argument of the List as a procedure (like CAR/CDR/CONS/NULL?/ATOM?/EQ?).
+    This ALSO means that you can prepend a procedure (or evaluatable) List like (CAR 4 5 6)into a face-value List.
+        Without the quote, (CAR '(4 5 6)) evaluates to 4
+        With the quote, '(CAR '(4 5 6)) evaluates to a List containing 2 Sexps: CAR & '(4 5 6). Yes, data is code and code is data. CAR is not just code but also returnable data.
+        Without ANY quotes, (CAR (4 5 6)) leads to 'no answer' because (4 5 6) doesn't have a quote and hence the interpreter will try to execute '4' as a procedure with '5' & '6' as arguments. To which it will fail because '4' isn't a procedure, it's an atom.
+================================================================================
+
+COND
+====
+COND accepts an unspecified number of sub-Lists (actually it only accepts 1 argument but is made to accept an unspecified amount of arguments through currying). Each sub-List can only contain 2 Sexps. The first Sexp must evaluate to true or false, if true return the second Sexp else continue down the line until you reach the first #T.
+
+LAT?
+====
+LAT? takes in 1 argument, a List. It checks if every Sexp in the List is an Atom. This means that a Lat is a List of Atoms.
+
+; check entire List even if a non-atom has been found; inefficient
+define lat? l:
+    if l == NULL, return #T
+    else return (atom? head) AND (lat? a body)
+
+; return #F the moment it encounters a non-atom
+define lat? l:
+    if l == NULL, return #T
+    if (atom? head) == #F, return #F
+    else if (atom? head) == #T, return (lat? body)
+
+MEMBER?
+=======
+MEMBER? takes in 2 arguments, an Atom and a Lat. It checks every Atom in the Lat to see if the Atom is a Member of the Lat.
+
+; checks entire List member is already found; inefficient
+define member? a lat:
+    if lat == NULL, return #F
+    else return (eq? a head) OR (member? a body)
+
+; return #T the moment a member has been found
+define member? a lat:
+    if lat == NULL, return #F
+    if (a == head), return #T
+    else return (member? a body)
+
+; recursive version of member? that can iterate through a List of sub_Lists rather than a List of Atoms
+; exits recursion the moment a member is located, but cannot return #T immediately.
+define member?* a l:
+    if l == NULL, return #F
+    if (atom? head), return (eq? a head)
+    else return (member?* a head) OR (member?* a body)
+
+; more efficient version
+define member?* a l:
+    if l == NULL, return #F
+    if (atom? head), return (eq? a head)
+    if (member?* a head), return #T
+    else return (member?* a body)
+
+================================================================================
+End of Chaper 2
+================================================================================
+
+REMBER
+======
+REMBER takes in 2 arguments, an Atom an a Lat. It returns a new_Lat which is the old Lat but with the first occurence of the atom removed.
+
+define rember a lat:
+    if lat == NULL, return ()
+    if (a == head), return body
+    else return head CONS (rember a body)
+
+define multirember a lat:
+    if lat == NULL, return ()
+    if (a == head), return (multirember a body)
+    else return head CONS (multirember a body)
+
+FIRSTS
+======
+FIRSTS takes in 1 argument, a List. This List can contain only non-empty sub_Lists. It returns a List composed of the first item of each sub_List in the List.
+
+define firsts l:
+    if l == NULL, return ()
+    return l.head.head CONS (firsts l.body)
+
+INSERTR
+=======
+INSERTR takes in 3 arguments, Atom1, Atom2 & a Lat. It returns a new_Lat where Atom1 has been inserted to the Right of the first occurence of Atom2 in the given Lat.
+
+; insert a1 after first occurence of a2
+define insertR a1 a2 lat:
+    if lat == NULL, return ()
+    if (head == a2), return head CONS a1 CONS body
+    else return head CONS (insertR a1 a2 body)
+
+define multiinsertR a1 a2 lat:
+    if lat == NULL, return ()
+    if (head == a2), return head CONS a1 CONS (multiinsertR a1 a2 body)
+    else return head CONS (multiinsertR a1 a2 body)
+
+---
+
+; insert a1 before first occurence of a2
+define insertL a1 a2 lat:
+    if lat == NULL, return ()
+    if (head == a2), return a1 CONS head CONS body
+    else return head CONS (insertL a1 a2 body)
+
+define multiinsertL a1 a2 lat:
+    if lat == NULL, return ()
+    if (head == a2), return a1 CONS head CONS (multiinsertL a1 a2 body)
+    else return head CONS (multiinsertL a1 a2 body)
+
+---
+
+; substitute the first occurence of a2 with a1
+define subst a1 a2 lat:
+    if lat == NULL, return ()
+    if (head == a2), return a1 CONS body
+    else return head CONS (subst a1 a2 body)
+
+define multisubst a1 a2 lat:
+    if lat == NULL, return ()
+    if (head == a2), return a1 CONS (multisubst a1 a2 body)
+    else return head CONS (multisubst a1 a2 body)
+
+---
+
+; substitute the first occurence of either a2 or a3 with a1
+define subst2 a1 a2 a3 lat:
+    if lat == NULL, return ()
+    if (head == a2), return a1 CONS body
+    if (head == a3), return a1 CONS body
+    else return head CONS (subst2 a1 a2 body)
+;alterate variant
+define subst2 a1 a2 a3 lat:
+    if lat == NULL, return ()
+    if (head == a2) OR (head == a3), return a1 CONS body
+    else return head CONS (insertR a1 a2 body)
+
+================================================================================
+End of Chapter 3
+================================================================================
+
+; TWO VARIANTS of ADD
+; it adds1 to num1 and subs1 from num2 repeatedly until num2 is zero. Then num1 is the sum
+define ADD num1 num2:
+    if (num2 == 0), return num1
+    else return (ADD (add1 num1) (sub1 num2))
+
+; it chains add1 repeatedly while reducing num2 until it hits zero. Then it carries out the queued up add1 commands for num1 as many times as it tok for sub1 num2 to hit zero.
+; this can be likened to how you build complex Lists with cons: edit the first element then chain it to the natural recursion.
+define ADD num1 num2:
+    if (num2 == 0), return num1
+    else return (add1 (ADD num1 (sub1 num2)))
+
+; in my opinion? The above two methods are exactly the same, except in the latter it is postponing all the add1 calculations to the end while in the former it is doing the add1 & sub1 concurrently such that once you hit zero, num1 is already the answer
+; in fact the former is more efficient since it can be tail-optimised (the processor does not have to backtrack through the function calls, it can return the sum right away)
+
+; The opposite can be done for SUB
+
+A Tuple (also called a Tup) is a Lat for numbers. Rather than being a List of atoms, it is specifically a List of numbers (remember that all numbers are atoms themselves).
+
+ADD builds numbers the same way CONS builds Lists. The value used in the terminating condition for CONS is the empty List (), the value used in the terminating condition for ADD is zero 0.
+
+For Lists, the terminating condition is (NULL? L) and it is also the same for Tups.
+
+For Lists with CONS, the terminal condition looks like
+    ((NULL? L) '())
+While for Tups with ADD, the terminal condition looks like
+    ((NULL? TUP) 0)
+
+The natural recursion for a Lat is (CDR Lat), and it is also the same for Tups.
+The natural recursion for a Number n is (Sub1 n).
+
+define ADDTUP Tup:
+    if Tup == NULL, return 0
+    else return head ADD (ADDTUP body)
+
+define MULT num1 num2:
+    if num2 == 0, return 0
+    else return num1 ADD (MULT num1 (sub1 num2))
+
+define MULT num1 num2:
+    if num2 == 0, return 0
+    else return (ADD num1 (MULT num1 (sub1 num2)))
+
+; tup+ adds all the first elements of both lists together, all the second elements together, and so on and so forth. It returns a list of the sums.
+define tup+ tup1 tup2:
+    if tup1.head == NULL, return ()
+    else return (tup1.head ADD tup2.head) CONS (tup+ tup1.body tup2.body)
+
+; version of tup+ that accepts two lists of nonequal length; the shorter list is treated as if it were padded with zeroes at the end to match the longer lists's length
+define tup+ tup1 tup2:
+    if tup1.head == NULL, return tup2
+    if tup2.head == NULL, return tup1
+    else return (tup1.head ADD tup2.head) CONS (tup+ tup1.body tup2.body)
+
+; write a tup+ such that it accepts a list of lists instead
+
+; write a function that zips a list of lists
+
+; GT? (Greater Than?)
+define GT? num1 num2:
+    if num1 == 0, return #F
+    if num2 == 0, return #T
+    else return (GT? (sub1 num1) (sub1 num2))
+
+define POW num1 num2:
+    if num2 == 0, return 1
+    else return num1 MULT (sub1 num2)
+
+define len lat:
+    if head == NULL, return 0
+    else return (add1 (len body))
+
+define pick n lat:
+    if n == 1, return head
+    else return (pick (sub1 n) body)
+
+define rempick n lat:
+    if n == 1, return body
+    else return head CONS (rempick (sub1 n) body)
+
+define no-nums lat:
+    if lat == NULL, return ()
+    if (number? head), return (no-nums body)
+    else return head CONS (no-nums body)
+
+define all-nums lat:
+    if lat == NULL, return ()
+    if (number? head), return head CONS (all-nums body)
+    else return (all-nums body)
+
+define eqan? a1 a2:
+    if (number? a1) AND (number? a2), return (= a1 a2)
+    if (number? a1) OR (number? a2), return #F
+    else return (eq? a1 a2)
+
+define occur a lat:
+    if head == NULL, return 0
+    if (eqan? head a), return (add1 (occur a body))
+    else return (occur a body)
+
+define one? n:
+    return (eqan? n 1)
+
+================================================================================
+End of Chapter 4
+================================================================================
+
+define rember* a l:
+    if l == NULL, return ()
+    if (atom? head),
+        if head == a, return (rember* a body)
+        else return head CONS (rember* a body)
+    else return (rember* a head) CONS (rember* a body)
+
+define insertR* a1 a2 l:
+    if l == NULL, return ()
+    if (atom? head),
+        if head == a2, return a2 CONS a1 CONS (insertR* a1 a2 body)
+        else return a2 CONS (insertR* a1 a2 body)
+    else return (insertR* a1 a2 head) CONS (insertR* a1 a2 body)
+
+define occur* a l:
+    if head == NULL, return 0
+    if (atom? head),
+        if (eqan? head a), return (add1 (occur* a body))
+        else return (occur* a body)
+    else return (occur* a head) ADD (occur* a body)
+
+define subst* a1 a2 lat:
+    if lat == NULL, return ()
+    if (atom? head),
+        if (head == a2), return a1 CONS (subst* a1 a2 body)
+        else return head CONS (subst* a1 a2 body)
+    else return (subst* a1 a2 head) CONS (subst* a1 a2 body)
+
+define eqlist? l1 l2:
+    if (null? l1) AND (null? l2), return #T
+    if (null? l1) OR (null? l2), return #F
+    if (atom? l1.head) AND (atom? l2.head),
+        if l1.head == l2.head, return (eqlist? l1.body l2.body)
+        else return #F
+    if (atom? l1.head) OR (atom? l2.head), return #F
+    else return (eqlist? l1.head l2.head) AND (eqlist? l1.body l2.body)
+
+; equal? accepts sexps rather than lists, which makes it different from eqlist?
+define equal? s1 s2:
+    if (atom? s1) AND (atom? s2), return (eq? s1 s2)
+    if (atom? s1) OR (atom? s2), return #F
+    else return (eqlist? s1 s2)
+
+; defining eqlist? in terms of equal?
+define eqlist? l1 l2:
+    if (null? l1) AND (null? l2), return #T
+    if (null? l1) OR (null? l2), return #F
+    if (equal? l1.head l2.head), return (eqlist? l1.body l2.body)
+    else return #F
+
+================================================================================
+End of Chapter 5
+================================================================================
+
+define numbered aexp:
+    if head == NULL, return #T
+    if (atom? head),
+        if head == +, return (numbered aexp.body)
+        if head == x, return (numbered aexp.body)
+        if head == ^, return (numbered aexp.body)
+        if (number? head), return (numbered aexp.body)
+        else return #F
+    else return (numbered aexp.head) AND (numbered aexp.body)
+
+================================================================================
+End of Chapter 6
+================================================================================
+
+define not texp:
+    if texp == #T, return #F
+    else return #T
+
+(define not
+  (lambda (texp)
+   (cond
+    (texp #F)
+    (else #T))))
+
+define set? lat:
+    if head == NULL, return #T
+    else return (not (member? head body)) AND (set? body)
+
+define makeset lat:
+    if head == NULL, return ()
+    else return head CONS (multirember head (makeset body))
+
+define subset? set1 set2:
+    if set1.head == NULL, return #T
+    return (member? set1.head set2) AND (subset? set1.body set2)
+
+define eqset? set1 set2:
+    return (subset? set1 set2) AND (subset? set2 set1)
+
+define intersect? set1 set2:
+    if set1.head == NULL, return #F
+    return (member? set1.head set2) OR (intersect? set1.body set2)
+
+define intersect set1 set2:
+    if set1.body == NULL, return ()
+    if (member? set1.head set2), return set1.head CONS (intersect set1.body set2)
+    else return (intersect set1.body set2)
+
+define union set1 set2:
+    if set1.head == NULL, return set2
+    if (member? set1.head set2), return (union set1.body set2)
+    else return set1.head CONS (union set1.body set2)
+
+define intersectall lset:
+    if body == NULL, return head
+    else return head intersect (intersectall body)
+
+define a-pair? sexp:
+    if first == NULL, return #F
+    if second == NULL, return #F
+    if third == NULL, return #T
+    else return #F
+
+a rel is a list of pairs
+
+a fun is a rel where all the first elements of each pair do not occur twice
+
+firsts is a function that creates a new list out of the first element of each sublist
+
+define fun? rel:
+    return (set? (firsts rel))
+
+define revrel rel:
+    if head == NULL, return ()
+    else return (build (second head) (first head)) CONS (revrel body)
+
+define revpair pair:
+    return (build (second pair) (first pair))
+
+define fullfun? fun:
+    return (set? (seconds fun))
+
+define one-to-one? fun:
+    return (fun? (revrel fun))
+- OR -
+define one-to-one? rel:
+    return (set? (firsts rel)) AND (set? (seconds rel))
+
+================================================================================
+End of Chapter 7
+================================================================================
+
+define rember-f test? a l:
+    if l == NULL, return ()
+    if (test? head a), return body
+    else return head CONS (rember-f test? a body)
+
+define insert-g test?:
+    g new old l:
+        if l == null, return ()
+        if (test? head old)
+            if (eq? g left), return new CONS head CONS body
+            if (eq? g right), return head CONS new CONS body
+        else return head CONS ((insert-g test?) g new old body)
+
+define insert-g seq:
+    new old l:
+        if l == NULL, return ()
+        if l.head == old, return (seq new l.head l.body)
+        else return l.head CONS ((insert-g seq) new old l.body)
+
+Original Function:
+==================
+(define multirember&co
+    (lambda (a lat col)
+      (cond
+        ((null? lat)
+         (col '() '()))
+        ((eq? (car lat) a)
+         (multirember&co a
+                         (cdr lat)
+                         (lambda (newlat seen)
+                           (col newlat
+                                (cons (car lat) seen)))))
+        (else
+         (multirember&co a
+                         (cdr lat)
+                         (lambda (newlat seen)
+                           (col (cons (car lat) newlat)
+                                seen)))))))
+
+Initial col function:
+=====================
+(define a-friend
+  (lambda (x y) (null? y)))
+
+Initial Sexp
+(m&co tuna (strawberries tuna & swordfish) a-friend)
+
+Recur x1:
+=========
+(m&co tuna (tuna & swordfish) (lambda (newlat seen)
+                                  (a-friend (cons strawberries newlat)
+                                            seen)))
+
+Recur x2:
+=========
+(m&co tuna (& swordfish) (lambda (newlat seen)
+                           (lambda (newlat seen)
+                             (a-friend (cons strawberries newlat)
+                                       seen))
+                           newlat
+                           (cons tuna seen)))
+
+Recur x3:
+=========
+(m&co tuna (swordfish) (lambda (newlat seen)
+                         (lambda (newlat seen)
+                           (lambda (newlat seen)
+                             (a-friend (cons strawberries newlat)
+                                       seen))
+                           newlat
+                           (cons tuna seen))
+                         (cons & newlat)
+                         seen))
+
+Recur x4:
+=========
+(m&co tuna () (lambda (newlat seen)
+                (lambda (newlat seen)
+                  (lambda (newlat seen)
+                    (lambda (newlat seen)
+                      (a-friend (cons strawberries newlat)
+                                seen))
+                    newlat
+                    (cons tuna seen))
+                  (cons & newlat)
+                  seen)
+                (cons swordfish newlat)
+                seen))
+
+Recur x5, Final Sexp:
+=====================
+Now to resolve this expression:
+((lambda (newlat seen)
+  (lambda (newlat seen)
+    (lambda (newlat seen)
+      (lambda (newlat seen)
+        (a-friend (cons strawberries newlat)
+                  seen))
+      newlat
+      (cons tuna seen))
+    (cons & newlat)
+    seen)
+  (cons swordfish newlat)
+  seen)
+ ()
+ ())
+
+Sub newlat = (), seen = ():
+===========================
+(lambda (() ())
+  (lambda (newlat seen)
+    (lambda (newlat seen)
+      (lambda (newlat seen)
+        (a-friend (cons strawberries newlat)
+                  seen))
+      newlat
+      (cons tuna seen))
+    (cons & newlat)
+    seen)
+  (cons swordfish ())
+  ())
+
+(cons swordfish ()) = (swordfish):
+==================================
+(lambda (() ())
+  (lambda (newlat seen)
+    (lambda (newlat seen)
+      (lambda (newlat seen)
+        (a-friend (cons strawberries newlat)
+                  seen))
+      newlat
+      (cons tuna seen))
+    (cons & newlat)
+    seen)
+  (swordfish)
+  ())
+
+Sub newlat = (swordfish), seen = ()
+===================================
+(lambda ((swordfish) ())
+  (lambda (newlat seen)
+    (lambda (newlat seen)
+      (a-friend (cons strawberries newlat)
+                seen))
+    newlat
+    (cons tuna seen))
+  (cons & (swordfish))
+  ())
+
+(cons & (swordfish)) = (& swordfish):
+=====================================
+(lambda ((swordfish) ())
+  (lambda (newlat seen)
+    (lambda (newlat seen)
+      (a-friend (cons strawberries newlat)
+                seen))
+    newlat
+    (cons tuna seen))
+  (& swordfish)
+  ())
+
+Sub newlat = (& swordfish), seen = ():
+======================================
+(lambda ((& swordfish) ())
+  (lambda (newlat seen)
+    (a-friend (cons strawberries newlat)
+              seen))
+  (& swordfish)
+  (cons tuna ()))
+
+(cons tuna ()) = (tuna):
+========================
+(lambda ((& swordfish) ())
+  (lambda (newlat seen)
+    (a-friend (cons strawberries newlat)
+              seen))
+  (& swordfish)
+  (tuna))
+
+Sub newlat = (& swordfish), seen = (tuna):
+==========================================
+(lambda ((& swordfish) (tuna))
+  (a-friend (cons strawberries (& swordfish))
+            (tuna)))
+
+(cons strawberries (& swordfish)) = (strawberries & swordfish):
+===============================================================
+(lambda ((& swordfish) (tuna))
+  (a-friend (strawberries & swordfish)
+            (tuna)))
+
+Resolve further:
+(a-friend (straberries & swordfish) (tuna))
+
+Is the 2nd argument a null list?
+#F
+
+In my own words, m&co separates (every atom that matches a) from the rest of the lat and collects them into their own list. It does so by - wait for it - CLOSURE (actually inaccurate, the function is still running so closure isn't actually in effect. More like the state is preserved in the stack). Every time it recurs it passes in a 'collector' function that remembers the state of the previous function. The genius is that this behavior works independent of whatever the collector function is. Simply by passing in & building up lambda functions + tweaking their arguments accordingly you can separate the atoms that match and the atoms that don't. At the end of all the lambda functions you are left with the initial collector function, which then does work on the final values depending on what you wrote the collector function to do.
+
+An alternate explanation: Instead of allocating a secondary data structure to collect the processed answers, you pass a function that acts in place of a data structure by chaining/storing the appropriate actions on an empty list. So function 1 may cons 'A' onto the first list, while function 2 does something else to the result given by function 1, and function 3 does another action onto the result of function 2 (which calls function 1) etc... in a sense the actions of each function are chained together starting from function 1. That way the unwinding of recursion builds up the correct data structure along the way.
+
+(define evens-only*&co
+  (lambda (l col)
+    (cond
+     ((null? l)
+      (col '() 1 0))
+     ((atom? (car l))
+      (cond
+       ((even? (car l))
+        (evens-only*&co (cdr l)
+                        (col (cons (car l) newlist)
+                             (mult (car l) product)
+                             sum)))
+       (else
+        (evens-only*&co (cdr l)
+                        (col newlist
+                             product
+                             (add (car l) sum))))))
+     (else
+      (evens-only*&co (car l)
+                      (lambda (car-newlist car-product car-sum)
+                        (evens-only*&co (cdr l)
+                                        (lambda (cdr-newlist cdr-product cdr-sum)
+                                          (col (cons car-newlist cdr-newlist)
+                                               (mult car-product cdr-product)
+                                               (add car-sum cdr-sum))))))))))
+
+The brilliant/mindblowing thing about the above function is the bridging of the collector function values between car & cdr. If the car of the list is a nested list, it restricts the evens-only*&co function to the car of the list, and the collector function
+
+================================================================================
+End of Chapter 8
+================================================================================
+
+(define looking
+  (lambda (a lat)
+    (keep-looking a (pick 1 lat) lat)))
+
+(define pick
+  (lambda (num lat)
+    (cond
+     ((= num 1) (car lat)
+      else (pick (sub1 num) (cdr lat))))))
+
+(define keep-looking
+  (lambda (a sorn lat)
+    (cond
+     ((number? sorn)
+      (keep-looking a (pick sorn lat) lat))
+     (else (eq? sorn a)))))
+
+(define eternity
+  (lambda (x)
+    (eternity x)))
+A total function is where every input value is mapped to an output value.
+A partial function is where every input value is NOT mapped to an output value.
+In the above eternity() function every value results in no answer due to endless recursion. Hence it is a partial function.
+
+(define shift
+  (lambda (pair)
+    (build (first (first pair))
+           (build (second (first pair))
+                  (second pair)))))
+
+shift() takes a pair of pairs and transforms it into a new pair of pairs
+old pair        new pair
+========================
+pairA           (car pairA)
+pairB           (cons (car (cdr pairA))
+                      pairB)
+
+(define align
+  (lambda (pora)
+    (cond
+     ((atom? pora) pora)
+     ((a-pair? (first pora))
+      (align (shift pora)))
+     (else (build (first pora)
+                  (align (second pora)))))))
+
+; pora is a 'pair or atom'
+If pora is an atom, return pora
+If (first pora) is a pair, execute align(shift(pora))
+If (first pora) is NOT a pair, try it on (second pora) instead while CONSing (first pora) to the head à la (first pora) CONS (align(shift(second pora)))
+
+Is 'align' a partial function? -> Does every input of pora result in an output?
+While all cases for (first pora) is covered (either (first pora) is an atom or it is not an atom), we don't know whether (align (second pora)) will resolve itself because it is not guaranteed if (second pora) is also a pora.
+
+If we cannot guarantee if the function will resolve, we cannot say if it is indeed a total function or not.
+
+Notice that the status of pora does not neccessarily change as the the function recurses. That's because of the call align(shift(pora)). shift(pora) does not reduce the size of pora, it merely rearranges the internal structure of pora. By calling align() recursively without guaranteeing that the argument pora has been reduced in some way that must eventually meet the termination condition, you cannot guarantee that the program will eventually terminate.
+
+Hence we need a new function that accurately evaluates the progress that has been made on the pora so that the we can use it as a terminating condition.
+Since a perfectly align()ed pora looks like (a (b (c d))) while a perfectly un-align()ed pora looks like (((a b) c) d), we can observe that a perfectly align()ed pora has all its first elements as atoms while a perfectly un-align()ed pora has all its first elements as non-atoms (or pairs).
+By assigning double the weightage to the first element, and giving all atoms a value of 1, we can devise a system where having all atoms as the first element naturally leads to the lowest score possible while having all non-atoms as the first element leads to the highest score possible. The improvement in the "arranged-ness" of a pora is then quantifiable as how much the score drops. I'm guessing that the terminal condition would be the score reaching the lowest possible value. That is when you know you've got all atoms as the first elements of the pora.
+
+Now take a look at the shuffe() function, which is like align() except it uses calls revpair(pora) instead of shift(pora). The pora never gets simpler, it only swaps the first and second elements back and forth. Hence the function never exits, and is not a total function.
+(define shuffle
+  (lambda (pora)
+    (cond
+     ((atom? pora) pora)
+     ((a-pair? (first pora))
+      (shuffle (revpair pora)))
+     (else (build (first pora)
+                  (shuffle (second pora)))))))
+
+Simple proof-by-contradiction for the halting problem:
+If a function will-stop? exists, you can devise a test function that will lead to a contradiction like so
+last-try():
+    if (will-stop? last-try) return eternity()
+    else return
+; where eternity() is a known function that never exits.
+
+If (will-stop? last-try) is True, it will call eternity() which never exits, hence last-try will never halt which contradicts the first half of this statement.
+If (will-stop? last-try) is False, it will just return and hence last-try exits, meaning it halts which contradicts the first half of this statement.
+
+Question: can you define functions in scheme without the 'define' keyword? Turns out you can, with recursive definitions. Take the following length_0() function that is a modification of the original length() function:
+
+(lambda (l) ;<- length_0
+  (cond
+   ((null? l) 0)
+   (else (add1 (eternity (cdr l))))))
+
+If the list is empty, return 0. Else return eternity(cdr l), which we now know never halts.
+Hence the above length_0() function is pretty much only good for telling whether a list is empty. If provided with a non-empty list it'd get stuck in an endless loop, and hence not give an answer. Sounds pretty useless.
+
+Yet you can use this definition of length_0() to build the definition for length_1(), which can only tell whether a list has 1 or 0 items.
+(lambda (l) ;<- length_1
+  (cond
+   ((null? l) 0)
+   (else (add1
+          (lambda (l) ;<- length_0
+            (cond
+             ((null? l) 0)
+             (else (add1 (eternity (cdr l))))))))))
+
+And beyond:
+
+; length_2
+(lambda (l) ;<- length_2
+  (cond
+   ((null? l) 0)
+   (else (add1
+          (lambda (l) ;<- length_1
+            (cond
+             ((null? l) 0)
+             (else (add1
+                    (lambda (l) ;<- length_0
+                      (cond
+                       ((null? l) 0)
+                       (else (add1 (eternity (cdr l))))))))))))))
+
+So if you need a length_n function, you have to write these nested lambdas n times. If we write it an infinite amount of times, our infinite function will be able to compute every possible length on the number line. But we can't write an infinite function.
+
+So we still have to find a way to repeat all these lambda patterns WITHOUT assigning the lambda function a name that we can use to call it from within itself (which is what the 'define' keyword provides)
+
+How about a function that does that? That accepts an arbitrary function, and applies that function to itself over and over again?
+
+================================================================================
+End of Chapter 9
+
+An entry is a list of two lists. The first list must be a set, and the second list must be the same length as the first list.
+
+To build an entry from a set and a list, use the build() function. This has already been defined in an earlier chapter, so there's no need to do it again. The book advises using a new-entry() wrapper function instead which simply calls build(). For what reason, I don't know.
+
+lookup-in-entry() takes three arguments, 'name', 'entry' & 'entry-f'. If 'name' exists within 'entry', return the corresponding value of 'name'. Else call 'entry-f'.
+
+I was trying to think of some intelligent way to access the car of each internal list within 'entry', turns out the answer was to treat lookup-in-entry() as an auxilary function that extracts the internal lists and calls another helper function that does the real heavy lifting. Looks like there isn't a clever way to access the car of each internal list after all, your best bet is to separate out the lists yourself and call another function that accepts the separated lists as individual arguments.
+
+(define lookup-in-entry
+  (lambda (name entry entry-f)
+    (lookup-in-entry-help name
+                          (first entry)
+                          (second entry)
+                          entry-f)))
+
+; helper function
+(define lookup-in-entry-help
+  (lambda (name names values entry-f)
+    (cond
+     ((null? names) (entry-f name))
+     ((eq? (car names) name)
+      (car values))
+     (else (lookup-in-entry (cdr names)
+                            (cdr values)
+                            entry-f)))))
+
+An entry is a list pair of a set and a list, both equal in length.
+A table is a list of entries.
+
+Tables are built by cons-ing new entries onto an existing table (a list). Again the book advises using a extend-table() wrapper function that simply calls the primitive function 'cons'. I assume there's a point to all this.
+
+When trying to write lookup-in-table(), I was debating whether I had to use lookup-in-entry() or not. If I did, the problem was that if lookup-in-entry() failed it would return entry-f() and exit. Instead, I wanted it to move on to testing the next entry in the table until there were no entries left to test, then return table-f().
+
+The devious solution then was to hide a recursive call to lookup-in-table() within entry-f() itself. My mind was so entrenched in the hierarchical thinking that lookup-in-table() calls lookup-in-entry(), not the other way round (since one table is made of multiple entries), that I never realized that I could couch the lookup-in-table() recursive call within the entry-f() function so that lookup-in-entry() calls another lookup-in-table() should the current entry not contain the name.
+On reflection, it seems the act of passing in a function to call as backup greatly extends the reuse potential of the lookup-in-entry(). The possibilities for a function are endless. If you generically call a passed in function, you can put whatever you want in that function. It's like adding new features to a function without having to rewrite that function.
+
+(define lookup-in-table
+  (lambda (name table table-f)
+    ((null? table) (table-f name))
+    (else (lookup-in-entry name
+                           (car table)
+                           (lambda (name)
+                             (lookup-in-table name
+                                              (cdr table)
+                                              table-f))))))
+
+the function value() evaluates the value of its given argument.
+What is (value nothing)? No answer.
+What is (vaue 'nothing)? 'nothing'.
+Always prepend a sexp with a quote if you wish to treat the sexp at face value, i.e. you don't want to resolve the sexp.
+
+There are six types of data in Scheme: *const, *quote, *identifier, *lambda, *cond & *application.
+Expression                          | Type         |  Value
+-----------------------------------------------------------
+(add1 6)                            | -            | 7
+6                                   | *const       | 6
+(quote nothing)                     | *quote       | nothing
+nothing                             | *identifier  | *No Value*
+#f                                  | *const       | #f
+cons                                | *const       | (primitive cons)
+(lambda (x y) (cons x y))           | *lambda      | -
+((lambda (x y) (cons x y)) ('a 'b)) | *application | -
+(cond (test do1) (else do2))        | *cond        | -
+
+(define expression-to-action
+  (lambda (e)
+    (cond
+     ((atom? e) (atom-to-action e))
+     (else (list-to-action e)))))
+
+(define atom-to-action
+  (lambda (e)
+    (cond
+     ((number? e) *const)
+     ((eq? e #t) *const)
+     ((eq? e #f) *const)
+     ((eq? e (quote cons)) *const)
+     ((eq? e (quote car)) *const)
+     ((eq? e (quote cdr)) *const)
+     ((eq? e (quote null?)) *const)
+     ((eq? e (quote eq?)) *const)
+     ((eq? e (quote atom?)) *const)
+     ((eq? e (quote zero?)) *const)
+     ((eq? e (quote add1)) *const)
+     ((eq? e (quote sub1)) *const)
+     ((eq? e (quote number?)) *const)
+     (else *identifier))))
+
+(define list-to-action
+  (lambda (e)
+    (cond
+     ((atom? (car e))
+      (cond
+       ((eq? (car e) (quote quote)) *quote)
+       ((eq? (car e) (quote lambda)) *lambda)
+       ((eq? (car e) (quote cond)) *cond)
+       (else *application)))
+     (else *application))))
+
+(define meaning
+  (lambda (e table)
+    ((expression-to-action e) e table)))
+
+(define *const
+  (lambda (e table)
+    (cond
+     ((number? e) e)
+     ((eq? e #t) #t)
+     ((eq? e #f) #f)
+     (else (build (quote primitive) e)))))
+
+(define *quote
+  (lambda (e table)
+    (text-of e)))
+
+(define text-of second)
+
+(define *identifier
+  (lambda (e table)
+    (lookup-in-table e table initial-table)))
+
+(define initial-table
+  (lambda (name)
+    (car (quote ()))))
+; You can't take the car of an empty list. This function's purpose is to never be called. It induces an error when called.
+
+(define *lambda
+  (lambda (e table)
+    (build (quote non-primitive)
+           (cons table (cdr e)))))
+
+(meaning e table)
+; where e is (lambda (x) (cons x y))
+; & table is (((y z) ((8) 9)))
+
+((expression-to-action () e table)
+
+(*lambda e table)
+
+((lambda (e table)
+   (build (quote non-primitive)
+          (cons table (cdr e)))) e table)
+
+; sub e with (lambda (x) (cons x y))
+; sub table with (((y z) ((8) 9)))
+(build (quote non-primitive)
+       (cons (((y z) ((8) 9)))
+             ((x) (cons x y))))
+
+(build (quote non-primitive)
+       (cons (((y z) ((8) 9)))
+             ((x) (cons x y))))
+
+(non-primitive  ((((y z) ((8) 9))) (x) (cons x y)))
+
+(define table-of first)
+(define formals-of second)
+(define body-of third)
+
+(define evcon
+  (lambda (lines table)
+    (cond
+     ((else? (question-of (car lines)))
+      (meaning (answer-of (car lines)) table))
+     ((meaning (question-of (car lines)) table)
+      (meaning (answer-of (car lines))
+               table))
+     (else (evcon (cdr lines) table)))))
+
+(define else?
+  (lambda (x)
+    (cond
+     ((atom? x) (eq? x (quote else)))
+     (else #f))))
+
+(define question-of first)
+(define answer-of second)
+
+(define *cond
+  (lambda (e table)
+    (evcon (cond-lines-of e) table)))
+
+(define cond-lines-of cdr)
+
+*cond in execution
+(*cond e table)
+; where e is (cond (coffee klatsch) (else party))
+; & table is (((coffee) (#t)) ((klatsch party)(5 (6))))
+
+(meaning coffee table)
+
+(define evlis
+  (lambda (args table)
+    (cond
+     ((null? args) (quote ()))
+     (else
+      (cons (meaning (car args) table)
+            (evlist (cdr args) table))))))
+
+(define *application
+  (lambda (e table)
+    (apply
+     (meaning (function-of e) table)
+     (meaning (arguments-of e) table))))
+
+(define function-of car)
+(define arguments-of cdr)
+
+There are two kinds of functions, primitive and non-primitive.
+Representations of primitive/non-primitive functions look like this respectively:
+Primitive - (primitive primitive-name)
+Non-primitive (non-primitive (table formals body))
+; The list (table formals body) is called a closure record
+
+(define primitive?
+  (lambda (l)
+    (eq? (first l) (quote primitive))))
+
+(define non-primitive?
+  (lambda (l)
+    (eq? (first l) (quote non-primitive))))
+
+(define apply
+  (lambda (fun vals)
+    (cond
+     ((primitive? fun) (apply-primitive (second fun)
+                                        vals))
+     ((non-primitive? fun) (apply-closure (second fun)
+                                          vals)))))
+
+(define apply-primitive
+  (lambda (name value)
+    (cond
+     ((eq? name (quote cons))
+      (cons (first vals) (second vals)))
+     ((eq? name (quote car))
+      (car (first vals)))
+     ((eq? name (quote cdr))
+      (cdr (first vals)))
+     ((eq? name (quote null?))
+      (null? (first vals)))
+     ((eq? name (quote eq?))
+      (eq? (first vals)))
+
+________________________________________________________________________________
+Oh my god this chapter is so convoluted everything's linked to something else and I still don't know what the 'table' is every function. Stopping for now, off to read a gentle introduction to symbolic computation.
